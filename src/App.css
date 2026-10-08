@@ -1,0 +1,229 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  color: #1f2937;
+}
+
+main {
+  width: min(90%, 700px);
+  margin: 40px auto;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 2.2rem;
+  color: #111827;
+}
+
+.auth-card {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  max-width: 450px;
+  margin: 0 auto 30px;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.auth-card button {
+  padding: 12px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.auth-card h2 {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 25px;
+  color: #111827;
+  font-size: 1.6rem;
+}
+
+.auth-card p button {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: inherit;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.auth-card form button {
+  width: 40%;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
+}
+
+.auth-card form button:hover {
+  background: #1d4ed8;
+}
+
+.auth-message {
+  text-align: center;
+  margin: 15px 0;
+  font-size: 0.95rem;
+}
+
+.notes-section {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  margin-top: 30px;
+}
+
+.notes-section input,
+.notes-section textarea {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+}s
+
+.notes-section textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.notes-section form button {
+  padding: 12px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+.notes-section form button[type="submit"] {
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
+}
+
+.notes-section form button[type="submit"]:hover {
+  background: #1d4ed8;
+}
+
+.notes-section form button[type="button"] {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.notes-section form button[type="button"]:hover {
+  background: #d1d5db;
+}
+
+.note-card {
+  background: #f9fafb;
+  padding: 20px;
+  margin-top: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.note-card h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #111827;
+  font-size: 1.25rem;
+}
+
+.note-card p {
+  margin: 0 0 15px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.note-card button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.note-card button:first-of-type {
+  background: #2563eb;
+  color: white;
+}
+
+.note-card button:first-of-type:hover {
+  background: #1d4ed8;
+}
+
+.note-card button:last-of-type {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.note-card button:last-of-type:hover {
+  background: #fecaca;
+}
+
+.notes-section form {
+  margin-bottom: 30px;
+}
+
+.notes-section form h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #111827;
+}
+
+.notes-section input:focus,
+.notes-section textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+@media (max-width: 600px) {
+  main {
+    width: 94%;
+    margin: 25px auto;
+  }
+
+  .auth-card,
+  .notes-section {
+    padding: 20px;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  .auth-card form button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .note-card {
+    padding: 16px;
+  }
+
+  .note-card button {
+    margin-bottom: 8px;
+  }
+}
