@@ -84,6 +84,8 @@ const [loginPassword, setLoginPassword] = useState('')
   async function handleSignUp(event: React.FormEvent<HTMLFormElement>) {
   event.preventDefault()
 
+  setAuthMessage('Creating your account...')
+
   const { data, error } = await supabase.auth.signUp({
     email: signUpEmail,
     password: signUpPassword,
@@ -95,15 +97,23 @@ const [loginPassword, setLoginPassword] = useState('')
     return
   }
 
-  console.log('Logged in successfully:', data)
+  console.log('Sign-up response:', data)
 
-setUser(data.user)
-
-setAuthMessage('Logged in successfully!')
+  if (data.session) {
+    setUser(data.user)
+    setAuthMessage(
+      'Account created successfully! You are now logged in.'
+    )
+  } else {
+    setAuthMessage(
+  "Account created! Please check your email and click the verification link before logging in. Didn't receive the email? Check your spam folder."
+)
+  }
 
   setSignUpEmail('')
   setSignUpPassword('')
 }
+
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
   event.preventDefault()
 
