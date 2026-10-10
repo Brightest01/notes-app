@@ -74,6 +74,11 @@ return
   const [content, setContent] = useState('')
   const [signUpEmail, setSignUpEmail] = useState('')
 const [signUpPassword, setSignUpPassword] = useState('')
+const [isLoggingIn, setIsLoggingIn] = useState(false)
+const [isSigningUp, setIsSigningUp] = useState(false)
+const [isSavingNote, setIsSavingNote] = useState(false)
+const [deletingNoteId, setDeletingNoteId] = useState<number | null>(null)
+
 
 const [showLogin, setShowLogin] = useState(false)
 const [loginEmail, setLoginEmail] = useState('')
@@ -84,6 +89,7 @@ const [loginPassword, setLoginPassword] = useState('')
   async function handleSignUp(event: React.FormEvent<HTMLFormElement>) {
   event.preventDefault()
 
+  setIsSigningUp(true)
   setAuthMessage('Creating your account...')
 
   const { data, error } = await supabase.auth.signUp({
@@ -94,6 +100,7 @@ const [loginPassword, setLoginPassword] = useState('')
   if (error) {
     console.error('Error signing up:', error)
     setAuthMessage(error.message)
+    setIsSigningUp(false)
     return
   }
 
@@ -106,16 +113,20 @@ const [loginPassword, setLoginPassword] = useState('')
     )
   } else {
     setAuthMessage(
-  "Account created! Please check your email and click the verification link before logging in. Didn't receive the email? Check your spam folder."
-)
+      "Account created! Please check your email and click the verification link before logging in. Didn't receive the email? Check your spam folder."
+    )
   }
 
   setSignUpEmail('')
   setSignUpPassword('')
+  setIsSigningUp(false)
 }
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
   event.preventDefault()
+
+  setIsLoggingIn(true)
+  setAuthMessage('Logging in...')
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email: loginEmail,
@@ -125,74 +136,90 @@ const [loginPassword, setLoginPassword] = useState('')
   if (error) {
     console.error('Error logging in:', error)
     setAuthMessage(error.message)
+    setIsLoggingIn(false)
     return
   }
 
   console.log('Logged in successfully:', data)
 
   setUser(data.user)
-
   setAuthMessage('Logged in successfully!')
+  setIsLoggingIn(false)
 }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
   event.preventDefault()
 
-if (!title.trim() || !content.trim()) {
-  setNoteMessage('Please enter a title and content.')
-  return
-}
-
-if (!user) {
-  setAuthMessage('Please log in to create or edit notes.')
-  return
-}
-
-if (editingNoteId === null) {
-  const { data, error } = await supabase
-    .from('notes')
-    .insert({
-      title,
-      content,
-      user_id: user.id,
-    })
-    .select()
-    .single()
-
-    if (error) {
-      console.error('Error creating note:', error)
-      return
-    }
-
-    setNotes([data, ...notes])
-  } else {
-  const { data, error } = await supabase
-    .from('notes')
-    .update({
-      title,
-      content,
-    })
-    .eq('id', editingNoteId)
-    .select()
-    .single()
-
-  if (error) {
-    console.error('Error updating note:', error)
+  if (!title.trim() || !content.trim()) {
+    setNoteMessage('Please enter a title and content.')
     return
   }
 
-  setNotes(
-    notes.map((note) =>
-      note.id === editingNoteId ? data : note,
-    ),
+  if (!user) {
+    setAuthMessage('Please log in to create or edit notes.')
+    return
+  }
+
+  setIsSavingNote(true)
+  setNoteMessage(
+    editingNoteId === null ? 'Saving note...' : 'Updating note...'
   )
 
-  setEditingNoteId(null)
-}
+  try {
+    if (editingNoteId === null) {
+      const { data, error } = await supabase
+        .from('notes')
+        .insert({
+          title,
+          content,
+          user_id: user.id,
+        })
+        .select()
+        .single()
 
-  setTitle('')
-  setContent('')
-  setNoteMessage('')
+      if (error) {
+        console.error('Error creating note:', error)
+        setNoteMessage(`Failed to save note: ${error.message}`)
+        return
+      }
+
+      setNotes((previousNotes) => [data, ...previousNotes])
+      setNoteMessage('Note saved successfully!')
+    } else {
+      const { data, error } = await supabase
+        .from('notes')
+        .update({
+          title,
+          content,
+        })
+        .eq('id', editingNoteId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating note:', error)
+        setNoteMessage(`Failed to update note: ${error.message}`)
+        return
+      }
+
+      setNotes((previousNotes) =>
+        previousNotes.map((note) =>
+          note.id === editingNoteId ? data : note
+        )
+      )
+
+      setEditingNoteId(null)
+      setNoteMessage('Note updated successfully!')
+    }
+
+    setTitle('')
+    setContent('')
+  } catch (error) {
+    console.error('Unexpected error saving note:', error)
+    setNoteMessage('Something went wrong. Please try again.')
+  } finally {
+    setIsSavingNote(false)
+  }
 }
 
   function handleEdit(note: Note) {
@@ -202,19 +229,33 @@ if (editingNoteId === null) {
   }
 
 async function handleDelete(noteId: number) {
-  const { error } = await supabase
-    .from('notes')
-    .delete()
-    .eq('id', noteId)
+  setDeletingNoteId(noteId)
+  setNoteMessage('Deleting note...')
 
-  if (error) {
-    console.error('Error deleting note:', error)
-    return
+  try {
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', noteId)
+
+    if (error) {
+      console.error('Error deleting note:', error)
+      setNoteMessage(`Failed to delete note: ${error.message}`)
+      return
+    }
+
+    setNotes((previousNotes) =>
+      previousNotes.filter((note) => note.id !== noteId)
+    )
+
+    setNoteMessage('Note deleted successfully!')
+  } catch (error) {
+    console.error('Unexpected error deleting note:', error)
+    setNoteMessage('Something went wrong while deleting the note.')
+  } finally {
+    setDeletingNoteId(null)
   }
-
-  setNotes(notes.filter((note) => note.id !== noteId))
 }
-
 async function handleLogout() {
   const { error } = await supabase.auth.signOut()
 
@@ -266,7 +307,9 @@ async function handleLogout() {
     onChange={(event) => setSignUpPassword(event.target.value)}
   />
 
-  <button type="submit">Sign Up</button>
+  <button type="submit" disabled={isSigningUp}>
+  {isSigningUp ? 'Creating account...' : 'Sign Up'}
+</button>
 </form>
     <p>
       Already have an account?{' '}
@@ -299,7 +342,9 @@ async function handleLogout() {
     onChange={(event) => setLoginPassword(event.target.value)}
   />
 
-  <button type="submit">Login</button>
+  <button type="submit" disabled={isLoggingIn}>
+  {isLoggingIn ? 'Logging in...' : 'Login'}
+</button>
 </form>
     <p>
       Don't have an account?{' '}
@@ -332,9 +377,15 @@ async function handleLogout() {
       onChange={(event) => setContent(event.target.value)}
     />
 
-    <button type="submit">
-      {editingNoteId === null ? 'Add Note' : 'Update Note'}
-    </button>
+    <button type="submit" disabled={isSavingNote}>
+  {isSavingNote
+    ? editingNoteId === null
+      ? 'Saving note...'
+      : 'Updating note...'
+    : editingNoteId === null
+      ? 'Add Note'
+      : 'Update Note'}
+</button>
     {editingNoteId !== null && (
   <button
     type="button"
@@ -360,6 +411,7 @@ async function handleLogout() {
           content={note.content}
           onEdit={() => handleEdit(note)}
           onDelete={() => handleDelete(note.id)}
+          isDeleting={deletingNoteId === note.id}
         />
            ))}
       </main>

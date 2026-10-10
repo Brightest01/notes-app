@@ -3,6 +3,7 @@ interface NoteCardProps {
   content: string
   onDelete: () => void
   onEdit: () => void
+  isDeleting: boolean
 }
 
 function NoteCard({
@@ -10,6 +11,7 @@ function NoteCard({
   content,
   onDelete,
   onEdit,
+  isDeleting,
 }: NoteCardProps) {
   return (
     <article className="note-card">
@@ -20,9 +22,13 @@ function NoteCard({
         Edit
       </button>
 
-      <button type="button" onClick={onDelete}>
-        Delete
-      </button>
+      <button
+  type="button"
+  onClick={onDelete}
+  disabled={isDeleting}
+>
+  {isDeleting ? 'Deleting...' : 'Delete'}
+</button>
     </article>
   )
 }
