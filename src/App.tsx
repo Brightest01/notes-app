@@ -71,9 +71,18 @@ return
 
   const {
     data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
-    setUser(session?.user ?? null)
-  })
+  } = 
+supabase.auth.onAuthStateChange((event, session) => {
+  setUser(session?.user ?? null)
+
+  if (event === 'PASSWORD_RECOVERY') {
+    setIsRecoverySession(true)
+    setShowAuthForm(true)
+    setShowForgotPassword(false)
+    setShowLogin(false)
+    setAuthMessage('')
+  }
+})
 
   return () => {
     subscription.unsubscribe()
@@ -96,7 +105,13 @@ const [deletingNoteId, setDeletingNoteId] = useState<number | null>(null)
 
 const [showLogin, setShowLogin] = useState(false)
 const [showAuthForm, setShowAuthForm] = useState(false)
+const [showForgotPassword, setShowForgotPassword] = useState(false)
 const [authScrollRequest, setAuthScrollRequest] = useState(0)
+
+const [isRecoverySession, setIsRecoverySession] = useState(false)
+const [newPassword, setNewPassword] = useState('')
+const [confirmPassword, setConfirmPassword] = useState('')
+const [isResettingPassword, setIsResettingPassword] = useState(false)
 
 
 const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -190,6 +205,89 @@ const [loginPassword, setLoginPassword] = useState('')
   setUser(data.user)
   setAuthMessage('Logged in successfully!')
   setIsLoggingIn(false)
+}
+
+async function handleLogout() {
+  const { error } = await supabase.auth.signOut()
+
+  if (error) {
+    console.error('Error logging out:', error)
+    return
+  }
+
+  setUser(null)
+  setEditingNoteId(null)
+  setTitle('')
+  setContent('')
+}
+
+async function handleForgotPassword(
+  event: React.FormEvent<HTMLFormElement>
+) {
+  event.preventDefault()
+
+  setAuthMessage('Sending password reset email...')
+
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    loginEmail,
+    {
+      redirectTo: `${window.location.origin}/`,
+    }
+  )
+
+  if (error) {
+    console.error('Error sending password reset email:', error)
+    setAuthMessage(error.message)
+    return
+  }
+
+  setAuthMessage(
+    'If an account exists for that email, you will receive a password reset link.'
+  )
+}
+
+
+async function handleResetPassword(
+  event: React.FormEvent<HTMLFormElement>
+) {
+  event.preventDefault()
+
+  if (newPassword.length < 6) {
+    setAuthMessage('Your password must be at least 6 characters.')
+    return
+  }
+
+  if (newPassword !== confirmPassword) {
+    setAuthMessage('Your passwords do not match.')
+    return
+  }
+
+  setIsResettingPassword(true)
+  setAuthMessage('Updating your password...')
+
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    })
+
+    if (error) {
+      console.error('Error updating password:', error)
+      setAuthMessage(error.message)
+      return
+    }
+
+    setAuthMessage('Password updated successfully! You can now log in with your new password.')
+    setNewPassword('')
+    setConfirmPassword('')
+    setIsRecoverySession(false)
+    setShowForgotPassword(false)
+    setLoginPassword('')
+  } catch (error) {
+    console.error('Unexpected password reset error:', error)
+    setAuthMessage('Something went wrong. Please try again.')
+  } finally {
+    setIsResettingPassword(false)
+  }
 }
 
 
@@ -377,19 +475,7 @@ async function handleDelete(noteId: number) {
     setDeletingNoteId(null)
   }
 }
-async function handleLogout() {
-  const { error } = await supabase.auth.signOut()
 
-  if (error) {
-    console.error('Error logging out:', error)
-    return
-  }
-
-  setUser(null)
-  setEditingNoteId(null)
-  setTitle('')
-  setContent('')
-}
 
 const normalizedSearchQuery = searchQuery.trim().toLowerCase()
 
@@ -418,7 +504,7 @@ return (
           theme={theme}
         />
 
-        {!user ? (
+        {!user || isRecoverySession ? (
           <main className="landing-main">
             <section className="hero-section">
               <div className="hero-copy">
@@ -604,15 +690,23 @@ return (
                     </span>
 
                     <h2 id="auth-heading">
-                      {showLogin
-                        ? 'Welcome back.'
-                        : 'Create your space.'}
+                      {isRecoverySession
+  ? 'Choose a new password.'
+  : showForgotPassword
+    ? 'Reset your password.'
+    : showLogin
+      ? 'Welcome back.'
+      : 'Create your space.'}
                     </h2>
 
                     <p>
-                      {showLogin
-                        ? 'Log in to return to your personal notes.'
-                        : 'Create an account and start saving your thoughts.'}
+                      {isRecoverySession
+  ? 'Choose a new password to regain access to your personal notes.'
+  : showForgotPassword
+    ? 'Enter your email address and we’ll send you a link to reset your password.'
+    : showLogin
+      ? 'Log in to return to your personal notes.'
+      : 'Create an account and start saving your thoughts.'}
                     </p>
                   </div>
 
@@ -622,11 +716,99 @@ return (
                     </p>
                   )}
 
-                  {showLogin ? (
+                  {isRecoverySession ? (
+  <form
+    className="auth-form"
+    onSubmit={handleResetPassword}
+  >
+    <label htmlFor="new-password">
+      New password
+    </label>
+
+    <input
+      id="new-password"
+      type="password"
+      placeholder="Enter your new password"
+      value={newPassword}
+      onChange={(event) =>
+        setNewPassword(event.target.value)
+      }
+      autoComplete="new-password"
+      minLength={6}
+      required
+    />
+
+    <label htmlFor="confirm-password">
+      Confirm new password
+    </label>
+
+    <input
+      id="confirm-password"
+      type="password"
+      placeholder="Confirm your new password"
+      value={confirmPassword}
+      onChange={(event) =>
+        setConfirmPassword(event.target.value)
+      }
+      autoComplete="new-password"
+      minLength={6}
+      required
+    />
+
+    <button
+      type="submit"
+      className="primary-button auth-submit"
+      disabled={isResettingPassword}
+    >
+      {isResettingPassword
+        ? 'Updating password...'
+        : 'Save new password'}
+    </button>
+  </form>
+) : showForgotPassword ? (
                     <form
                       className="auth-form"
-                      onSubmit={handleLogin}
+                      onSubmit={handleForgotPassword}
                     >
+                      <label htmlFor="forgot-password-email">
+                        Email address
+                      </label>
+
+                      <input
+                        id="forgot-password-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={loginEmail}
+                        onChange={(event) =>
+                          setLoginEmail(event.target.value)
+                      }
+                      autoComplete="email"
+                      required
+                    />
+
+                    <button
+                      type="submit"
+                    className="primary-button auth-submit"
+                    >
+                      Send reset link
+                    </button>
+
+    <button
+      type="button"
+      className="secondary-button"
+      onClick={() => {
+        setShowForgotPassword(false)
+        setAuthMessage('')
+      }}
+    >
+      Back to login
+    </button>
+  </form>
+) : showLogin ? (
+  <form
+    className="auth-form"
+    onSubmit={handleLogin}
+  >
                       <label htmlFor="login-email">Email address</label>
                       <input
                         id="login-email"
@@ -652,6 +834,19 @@ return (
                         autoComplete="current-password"
                         required
                       />
+
+                      
+<button
+  type="button"
+  className="forgot-password-link"
+  onClick={() => {
+    setAuthMessage('')
+    setShowForgotPassword(true)
+  }}
+>
+  Forgot password?
+</button>
+
 
                       <button
                         type="submit"
